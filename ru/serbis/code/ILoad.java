@@ -7,6 +7,7 @@ public class ILoad extends Ins {
     private byte var;
 
     public ILoad() {
+        size = 2;
         code = 0x04;
     }
 
@@ -17,4 +18,5 @@ public class ILoad extends Ins {
     public void setVar(byte var) {
         this.var = var;
     }
+
 }

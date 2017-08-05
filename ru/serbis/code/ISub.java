@@ -6,6 +6,7 @@ package ru.serbis.code;
 public class ISub extends Ins {
 
     public ISub() {
+        size = 1;
         code = 0x01;
     }
 }

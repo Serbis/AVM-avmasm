@@ -7,6 +7,7 @@ public class IStore extends Ins {
     private byte var;
 
     public IStore() {
+        size = 2;
         code = 0x05;
     }
 

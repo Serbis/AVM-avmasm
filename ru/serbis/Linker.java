@@ -1,5 +1,8 @@
 package ru.serbis;
 
+import ru.serbis.asm.Code;
+import ru.serbis.asm.Constructor;
+import ru.serbis.asm.Method;
 import ru.serbis.code.CodeParser;
 import ru.serbis.code.Ins;
 import ru.serbis.cp.ConstantPool;
@@ -15,8 +18,13 @@ import java.util.List;
 public class Linker {
     /** Список строк блока пула констант */
     private List<String> constantPoolBlock;
-    /** Список строк блока кода */
-    private List<String> codeBlock;
+    /** Определение списка методов */
+    private Code code;
+
+
+    public Linker() {
+        code = new Code();
+    }
 
     /**
      * Линкуент входящий файл ассемблерного кода. В результате работы данного
@@ -49,13 +57,13 @@ public class Linker {
             return;
         }
 
-        List<Ins> insList = codeParser.parse(codeBlock); //Парсинг кода
-        if (insList == null) {
+        code = codeParser.parse(code); //Парсинг кода
+        if (code == null) {
             Logger.getInstance().log(Logger.LogType.ERROR, "Критическая ошибка во время парсинга входящего файла.");
             return;
         }
 
-        if (!bcGen.generateToFile(outFile, constantPool, insList)) {
+        if (!bcGen.generateToFile(outFile, constantPool, code)) {
             Logger.getInstance().log(Logger.LogType.ERROR, "Критическая ошибка во время генерации программного файла.");
         }
 
@@ -70,20 +78,38 @@ public class Linker {
     private void splitToBlocks(BufferedReader inr) {
         Logger.getInstance().log(Logger.LogType.INFO, "Разбор файла на логические блоки.");
         constantPoolBlock = new ArrayList<>();
-        codeBlock = new ArrayList<>();
 
         String line; //Обрабатываемая строка
         ParserMode mode = null; //В каком блоке данных находися парсер строк
 
-        boolean clf;
+        boolean clf = false;
+        String signature = "";
+        List<String> localLinesPool = new ArrayList<>();
 
         try {
             while ((line = inr.readLine()) != null) {
                 if (line.contains("[CONSTANT POOL]")) {
                     mode = ParserMode.CONSTANT_POOL;
                     clf = true;
-                } else if (line.contains("[CODE]")) {
-                    mode = ParserMode.CODE;
+                } else if (line.contains("[METHOD]")) {
+                    String[] spl =  line.split("\\[");
+                    spl[2] = spl[2].replaceAll("]", "");
+                    signature = spl[2];
+                    mode = ParserMode.METHOD;
+                    clf = true;
+                } else if (line.contains("[END]")) {
+                    if (mode == null) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка чтения входящего файла, неожиданный блок [END].");
+                        return;
+                    }
+
+                    switch (mode) {
+                        case METHOD:
+                            code.getMethods().add(new Method(signature, localLinesPool));
+                            localLinesPool = new ArrayList<>();
+
+                            break;
+                   }
                     clf = true;
                 } else {
                     clf = false;
@@ -98,8 +124,8 @@ public class Linker {
                         case CONSTANT_POOL:
                             constantPoolBlock.add(line);
                             break;
-                        case CODE:
-                            codeBlock.add(line);
+                        case METHOD:
+                            localLinesPool.add(line);
                             break;
                     }
                 }
@@ -115,6 +141,6 @@ public class Linker {
      * Режим работы блокового парсера
      */
     private enum ParserMode {
-        CONSTANT_POOL, CODE
+        CONSTANT_POOL, METHOD
     }
 }

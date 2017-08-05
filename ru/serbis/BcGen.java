@@ -1,5 +1,8 @@
 package ru.serbis;
 
+import ru.serbis.asm.Code;
+import ru.serbis.asm.Constructor;
+import ru.serbis.asm.Method;
 import ru.serbis.code.*;
 import ru.serbis.cp.*;
 
@@ -16,12 +19,16 @@ import java.util.List;
  */
 public class BcGen {
     /** Размер заголовка в байтах*/
-    private final int HEADER_SIZE = 4;
+    private final int HEADER_SIZE = 8;
 
     /** Глобальный буффер для записи */
     private ByteBuffer bf;
+    /** Размер пула констант в байтах */
+    private int cpSize;
+    /** Размер пула методов в байтах */
+    private int mtSize;
 
-    public boolean generateToFile(File of, ConstantPool cp, List<Ins> code) {
+    public boolean generateToFile(File of, ConstantPool cp, Code code) {
         Logger.getInstance().log(Logger.LogType.INFO, "Запуск генерации байт-кода.");
 
         if (!of.exists()) {
@@ -49,9 +56,11 @@ public class BcGen {
             return false;
         }
 
-        if (!processHeader(cp, fos))
+        if (!processHeader(cp, fos, code))
             return false;
         if (!processConstantPool(cp, fos))
+            return false;
+        if (!processMethods(code, fos))
             return false;
         if (!processCode(cp, code, fos))
             return false;
@@ -67,13 +76,17 @@ public class BcGen {
      * @param fos поток записи
      * @return результат выполнения операции
      */
-    private boolean processHeader(ConstantPool cp, FileOutputStream fos) {
+    private boolean processHeader(ConstantPool cp, FileOutputStream fos, Code code) {
         Logger.getInstance().log(Logger.LogType.INFO, "Генерация заголовка.");
-        int size = cp.getTotalSizeInBytes();
-        bf = ByteBuffer.allocate(4);
-        bf.putInt(size);
+        cpSize = cp.getTotalSizeInBytes();
+        mtSize = code.getMethodSignatureBlockSize();
 
         try {
+            bf = ByteBuffer.allocate(4);
+            bf.putInt(cpSize);
+            fos.write(bf.array());
+            bf = ByteBuffer.allocate(4);
+            bf.putInt(mtSize);
             fos.write(bf.array());
         } catch (IOException e) {
             Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи заголовка. Ошибка записи размера пула констант.");
@@ -138,6 +151,31 @@ public class BcGen {
        return true;
     }
 
+    private boolean processMethods(Code code, FileOutputStream fos) {
+        Logger.getInstance().log(Logger.LogType.INFO, "Генерация пула методов.");
+        for (int i = 0; i < code.getMethods().size(); i++) {
+            Method m = code.getMethods().get(i);
+            try {
+                bf = ByteBuffer.allocate(2); //Размер сигнатуры
+                bf.putShort((short) m.getSignature().length());
+                fos.write(bf.array());
+                fos.write(m.getSignature().getBytes()); //Сигнатура
+                bf = ByteBuffer.allocate(4);
+                int mof = code.getMethodAddress(i); //Адрес метода
+                if (mof >= 0)
+                    bf.putInt(HEADER_SIZE + cpSize + mtSize + mof);
+                else
+                    bf.putInt(-1);
+                fos.write(bf.array());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        return true;
+    }
+
     /**
      * Записывает в файл блок кода
      *
@@ -146,97 +184,100 @@ public class BcGen {
      * @param fos поток записи
      * @return результат выполнения операции
      */
-    private boolean processCode (ConstantPool cp, List<Ins> code, FileOutputStream fos) {
+    private boolean processCode (ConstantPool cp, Code code, FileOutputStream fos) {
         Logger.getInstance().log(Logger.LogType.INFO, "Генерация байт-кода.");
-        for (int i = 0; i < code.size(); i++) {
-            Ins ins = code.get(i);
-            if (ins instanceof IAdd) {
-                IAdd iAdd = (IAdd) ins;
-                try {
-                    fos.write(iAdd.getCode());
-                } catch (IOException e) {
-                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции iadd " + i + " .");
-                    e.printStackTrace();
-                    return false;
+        for (Method m: code.getMethods()) {
+            List<Ins> insList = m.getIstrunctions();
+            for (int i = 0; i < insList.size(); i++) {
+                Ins ins = insList.get(i);
+                if (ins instanceof IAdd) {
+                    IAdd iAdd = (IAdd) ins;
+                    try {
+                        fos.write(iAdd.getCode());
+                    } catch (IOException e) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции iadd " + i + " .");
+                        e.printStackTrace();
+                        return false;
+                    }
+                } else if (ins instanceof ISub) {
+                    ISub iSub = (ISub) ins;
+                    try {
+                        fos.write(iSub.getCode());
+                    } catch (IOException e) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции isub " + i + " .");
+                        e.printStackTrace();
+                        return false;
+                    }
+                } else if (ins instanceof IDiv) {
+                    IDiv iDiv = (IDiv) ins;
+                    try {
+                        fos.write(iDiv.getCode());
+                    } catch (IOException e) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции idiv " + i + " .");
+                        e.printStackTrace();
+                        return false;
+                    }
+                } else if (ins instanceof IMul) {
+                    IMul iMul = (IMul) ins;
+                    try {
+                        fos.write(iMul.getCode());
+                    } catch (IOException e) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции imul " + i + " .");
+                        e.printStackTrace();
+                        return false;
+                    }
+                } else if (ins instanceof ILoad) {
+                    ILoad iLoad = (ILoad) ins;
+                    try {
+                        fos.write(iLoad.getCode());
+                        fos.write(iLoad.getVar());
+                    } catch (IOException e) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции iload " + i + " .");
+                        e.printStackTrace();
+                        return false;
+                    }
+                } else if (ins instanceof IStore) {
+                    IStore iStore = (IStore) ins;
+                    try {
+                        fos.write(iStore.getCode());
+                        fos.write(iStore.getVar());
+                    } catch (IOException e) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции store " + i + " .");
+                        e.printStackTrace();
+                        return false;
+                    }
+                } else if (ins instanceof Lic) {
+                    Lic lic = (Lic) ins;
+                    bf = ByteBuffer.allocate(4);
+                    bf.putInt(getCpEntryAddress(lic.getPeid(), cp));
+                    try {
+                        fos.write(lic.getCode());
+                        fos.write(bf.array());
+                    } catch (IOException e) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции lic " + i + " .");
+                        e.printStackTrace();
+                        return false;
+                    }
+                } else if (ins instanceof Invokeharware) {
+                    Invokeharware invokeharware = (Invokeharware) ins;
+                    try {
+                        fos.write(invokeharware.getCode());
+                        fos.write(invokeharware.getCall());
+                    } catch (IOException e) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции invokeharware " + i + " .");
+                        e.printStackTrace();
+                        return false;
+                    }
+                } else {
+                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Неизвестная инструкция на строке " + i + " .");
                 }
-            } else if (ins instanceof ISub) {
-                ISub iSub = (ISub) ins;
-                try {
-                    fos.write(iSub.getCode());
-                } catch (IOException e) {
-                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции isub " + i + " .");
-                    e.printStackTrace();
-                    return false;
-                }
-            } else if (ins instanceof IDiv) {
-                IDiv iDiv = (IDiv) ins;
-                try {
-                    fos.write(iDiv.getCode());
-                } catch (IOException e) {
-                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции idiv " + i + " .");
-                    e.printStackTrace();
-                    return false;
-                }
-            } else if (ins instanceof IMul) {
-                IMul iMul = (IMul) ins;
-                try {
-                    fos.write(iMul.getCode());
-                } catch (IOException e) {
-                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции imul " + i + " .");
-                    e.printStackTrace();
-                    return false;
-                }
-            } else if (ins instanceof ILoad) {
-                ILoad iLoad = (ILoad) ins;
-                try {
-                    fos.write(iLoad.getCode());
-                    fos.write(iLoad.getVar());
-                } catch (IOException e) {
-                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции iload " + i + " .");
-                    e.printStackTrace();
-                    return false;
-                }
-            } else if (ins instanceof IStore) {
-                IStore iStore = (IStore) ins;
-                try {
-                    fos.write(iStore.getCode());
-                    fos.write(iStore.getVar());
-                } catch (IOException e) {
-                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции store " + i + " .");
-                    e.printStackTrace();
-                    return false;
-                }
-            } else if (ins instanceof Lic) {
-                Lic lic = (Lic) ins;
-                bf = ByteBuffer.allocate(4);
-                bf.putInt(getCpEntryAddress(lic.getPeid(), cp));
-                try {
-                    fos.write(lic.getCode());
-                    fos.write(bf.array());
-                } catch (IOException e) {
-                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции lic " + i + " .");
-                    e.printStackTrace();
-                    return false;
-                }
-            } else if (ins instanceof Invokeharware) {
-                Invokeharware invokeharware = (Invokeharware) ins;
-                try {
-                    fos.write(invokeharware.getCode());
-                    fos.write(invokeharware.getCall());
-                } catch (IOException e) {
-                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции invokeharware " + i + " .");
-                    e.printStackTrace();
-                    return false;
-                }
-            } else {
-                Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Неизвестная инструкция на строке " + i + " .");
             }
         }
 
         return true;
     }
 
-    private int getCpEntryAddress(short id, ConstantPool cp) {
+    private int getCpEntryAddress(int id, ConstantPool cp) {
         return HEADER_SIZE + cp.getShiftById(id);
     }
 }

@@ -4,13 +4,14 @@ package ru.serbis.code;
  * Инструкция LIC
  */
 public class Lic extends Ins {
-    private short peid;
+    private int peid;
 
     public Lic() {
+        size = 5;
         code = 0x06;
     }
 
-    public short getPeid() {
+    public int getPeid() {
         return peid;
     }
 

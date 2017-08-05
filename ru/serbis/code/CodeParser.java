@@ -1,6 +1,10 @@
 package ru.serbis.code;
 
 import ru.serbis.Logger;
+import ru.serbis.asm.Code;
+import ru.serbis.asm.Constructor;
+import ru.serbis.asm.Method;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,15 +14,34 @@ import java.util.List;
 public class CodeParser {
 
     /**
-     * Производит парсинг кода, выдвавя на выходе список объектов-представлений
-     * иснутрукций
+     * Производит парсинг кода, получив на вход определение кода, дополняет
+     * его инструкциями и возвращает в качестве результата
      *
-     * @param lines список строк блока кода
-     * @return список иснтрукций
+     * @param code определение кода
+     * @return модифицированный объект определения кода
      */
-    public List<Ins> parse(List<String> lines) {
+    public Code parse(Code code) {
+        Code cd = new Code(code);
         Logger.getInstance().log(Logger.LogType.INFO, "Парсинг кода.");
 
+        for (Method m: cd.getMethods()) {
+            List<Ins> insList = processCodeBlock(m.getLines());
+            if (insList == null)
+                return null;
+            m.setIstrunctions(insList);
+        }
+
+        return cd;
+    }
+
+    /**
+     * Распарсивает отдельный блок инструкций, получив на вход список строк
+     * выдает на выходе список инструкций
+     *
+     * @param lines список строк
+     * @return список инструкций
+     */
+    private List<Ins> processCodeBlock(List<String> lines) {
         List<Ins> insList = new ArrayList<>();
 
         for(int i = 0; i < lines.size(); i++) {

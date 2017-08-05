@@ -61,7 +61,7 @@ public class ConstantPool {
      * @param id номер ячейи
      * @return сдвиг в байтах
      */
-    public int getShiftById(short id) {
+    public int getShiftById(int id) {
         int shift = -1;
         for (Const c: pool) {
             if (c.getId() == id)
