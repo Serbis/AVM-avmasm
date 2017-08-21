@@ -2,7 +2,6 @@ package ru.serbis.code;
 
 import ru.serbis.Logger;
 import ru.serbis.asm.Code;
-import ru.serbis.asm.Constructor;
 import ru.serbis.asm.Method;
 
 import java.util.ArrayList;

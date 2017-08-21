@@ -1,7 +1,6 @@
 package ru.serbis;
 
 import ru.serbis.asm.Code;
-import ru.serbis.asm.Constructor;
 import ru.serbis.asm.Method;
 import ru.serbis.code.CodeParser;
 import ru.serbis.code.Ins;
