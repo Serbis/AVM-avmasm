@@ -113,6 +113,8 @@ public class CodeParser {
                     return null;
                 }
                 insList.add(invokeharware);
+            } else if (l.indexOf("return") == 0) {
+                insList.add(new Return());
             } else {
                 Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка парсинга кода. Неизвестная инструкция. Строка " + i);
                 return null;

@@ -10,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Iterator;
 import java.util.List;
 
@@ -82,9 +83,11 @@ public class BcGen {
 
         try {
             bf = ByteBuffer.allocate(4);
-            bf.putInt(cpSize);
+            bf.order(ByteOrder.LITTLE_ENDIAN);
+            bf.putInt(cpSize); //
             fos.write(bf.array());
             bf = ByteBuffer.allocate(4);
+            bf.order(ByteOrder.LITTLE_ENDIAN);
             bf.putInt(mtSize);
             fos.write(bf.array());
         } catch (IOException e) {
@@ -112,6 +115,7 @@ public class BcGen {
                 ConstInt constInt = (ConstInt) cn;
                 try {
                     bf = ByteBuffer.allocate(4);
+                    bf.order(ByteOrder.LITTLE_ENDIAN);
                     bf.putInt(constInt.getValue());
                     fos.write(bf.array());
                 } catch (IOException e) {
@@ -123,6 +127,7 @@ public class BcGen {
                 ConstLink constLink = (ConstLink) cn;
                 try {
                     bf = ByteBuffer.allocate(4);
+                    bf.order(ByteOrder.LITTLE_ENDIAN);
                     bf.putInt(getCpEntryAddress(constLink.getLink(), cp));
                     fos.write(bf.array());
                 } catch (IOException e) {
@@ -135,6 +140,7 @@ public class BcGen {
                 try {
                     bf = ByteBuffer.allocate(2);
                     bf.putShort((short) constString.getValue().length());
+                    bf.order(ByteOrder.LITTLE_ENDIAN);
                     fos.write(bf.array());
                     fos.write(constString.getValue().getBytes());
                 } catch (IOException e) {
@@ -156,10 +162,12 @@ public class BcGen {
             Method m = code.getMethods().get(i);
             try {
                 bf = ByteBuffer.allocate(2); //Размер сигнатуры
+                bf.order(ByteOrder.LITTLE_ENDIAN);
                 bf.putShort((short) m.getSignature().length());
                 fos.write(bf.array());
                 fos.write(m.getSignature().getBytes()); //Сигнатура
                 bf = ByteBuffer.allocate(4);
+                bf.order(ByteOrder.LITTLE_ENDIAN);
                 int mof = code.getMethodAddress(i); //Адрес метода
                 if (mof >= 0)
                     bf.putInt(HEADER_SIZE + cpSize + mtSize + mof);
@@ -264,6 +272,15 @@ public class BcGen {
                         fos.write(invokeharware.getCall());
                     } catch (IOException e) {
                         Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции invokeharware " + i + " .");
+                        e.printStackTrace();
+                        return false;
+                    }
+                } else if (ins instanceof Return) {
+                    Return aReturn = (Return) ins;
+                    try {
+                        fos.write(aReturn.getCode());
+                    } catch (IOException e) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции return " + i + " .");
                         e.printStackTrace();
                         return false;
                     }
