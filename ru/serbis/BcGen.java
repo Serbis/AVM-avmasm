@@ -284,6 +284,16 @@ public class BcGen {
                         e.printStackTrace();
                         return false;
                     }
+                } else if (ins instanceof Bipush) {
+                    Bipush bipush = (Bipush) ins;
+                    try {
+                        fos.write(bipush.getCode());
+                        fos.write(bipush.getValue());
+                    } catch (IOException e) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции bipush " + i + " .");
+                        e.printStackTrace();
+                        return false;
+                    }
                 } else {
                     Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Неизвестная инструкция на строке " + i + " .");
                 }

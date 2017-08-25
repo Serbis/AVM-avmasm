@@ -115,6 +115,21 @@ public class CodeParser {
                 insList.add(invokeharware);
             } else if (l.indexOf("return") == 0) {
                 insList.add(new Return());
+            } else if (l.indexOf("bipush") == 0) {
+                String spl[] = l.split(" ");
+                if (spl.length != 2) {
+                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка парсинга кода. Некорректный аргумент инструкции bipush. Строка " + i);
+                    return null;
+                }
+                spl[1] = clean(spl[1]);
+                Bipush bipush = new Bipush();
+                try {
+                    bipush.setValue(Byte.parseByte(spl[1]));
+                } catch (Exception e) {
+                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка парсинга кода. Неверный тип аргумента инструкции bipush.  Строка " + i);
+                    return null;
+                }
+                insList.add(bipush);
             } else {
                 Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка парсинга кода. Неизвестная инструкция. Строка " + i);
                 return null;

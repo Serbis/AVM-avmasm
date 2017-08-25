@@ -6,6 +6,6 @@ package ru.serbis.code;
 public class IAdd extends Ins {
     public IAdd() {
         size = 1;
-        code = 0x00;
+        code = 0x60;
     }
 }
