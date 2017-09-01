@@ -193,10 +193,11 @@ public class BcGen {
      */
     private boolean processCode (ConstantPool cp, Code code, FileOutputStream fos) {
         Logger.getInstance().log(Logger.LogType.INFO, "Генерация байт-кода.");
-        for (Method m: code.getMethods()) {
+        for (int i = 0; i < code.getMethods().size(); i++) {
+            Method m = code.getMethods().get(i);
             List<Ins> insList = m.getIstrunctions();
-            for (int i = 0; i < insList.size(); i++) {
-                Ins ins = insList.get(i);
+            for (int j = 0; j < insList.size(); j++) {
+                Ins ins = insList.get(j);
                 if (ins instanceof IAdd) {
                     IAdd iAdd = (IAdd) ins;
                     try {
@@ -270,6 +271,19 @@ public class BcGen {
                     try {
                         fos.write(invokeharware.getCode());
                         fos.write(invokeharware.getCall());
+                    } catch (IOException e) {
+                        Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции invokeharware " + i + " .");
+                        e.printStackTrace();
+                        return false;
+                    }
+                } else if (ins instanceof If_icmpeq) {
+                    If_icmpeq if_icmpeq = (If_icmpeq) ins;
+                    try {
+                        fos.write(if_icmpeq.getCode());
+                        bf = ByteBuffer.allocate(4);
+                        bf.order(ByteOrder.LITTLE_ENDIAN);
+                        bf.putInt(HEADER_SIZE + cpSize + mtSize + code.getInsAbsoluteAddress(i, j));
+                        fos.write(bf.array());
                     } catch (IOException e) {
                         Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка при записи кода. Ошибка ввода-вывода при записи инструкции invokeharware " + i + " .");
                         e.printStackTrace();

@@ -113,6 +113,20 @@ public class CodeParser {
                     return null;
                 }
                 insList.add(invokeharware);
+            }  else if (l.indexOf("if_icmpeq") == 0) {
+                String spl[] = l.split(" ");
+                if (spl.length != 2) {
+                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка парсинга кода. Некорректный аргумент инструкции if_icmpeq. Строка " + i);
+                    return null;
+                }
+                If_icmpeq if_icmpeq = new If_icmpeq();
+                try {
+                    if_icmpeq.setInsn(Short.parseShort(spl[1]));
+                } catch (Exception e) {
+                    Logger.getInstance().log(Logger.LogType.ERROR, "Ошибка парсинга кода. Неверный тип аргумента инструкции if_icmpeq.  Строка " + i);
+                    return null;
+                }
+                insList.add(if_icmpeq);
             } else if (l.indexOf("return") == 0) {
                 insList.add(new Return());
             } else if (l.indexOf("bipush") == 0) {

@@ -51,4 +51,28 @@ public class Code {
 
         return adr;
     }
+
+    /**
+     * Возаращает адрес инструкции внутри блока кода cf
+     *
+     * @param insn номер инструкции внутри метода
+     * @param meth номер метода
+     * @return адрес
+     */
+    public int getInsAbsoluteAddress(int meth, int insn) {
+        int adr = 0;
+        for (int i = 0; i < meth; i++) {
+           if (i == meth) {
+               for (int j = 0; j < insn; j++) {
+                   adr += methods.get(i).getIstrunctions().get(j).getSize();
+               }
+           } else {
+               for (Ins ins: methods.get(i).getIstrunctions()) {
+                   adr += ins.getSize();
+               }
+           }
+        }
+
+        return adr;
+    }
 }
